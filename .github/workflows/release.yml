@@ -1,0 +1,40 @@
+name: Release
+
+# Publishes @runlocal/cli to npm when a version tag, such as v0.3.0, is pushed.
+# It uses npm trusted publishing (GitHub OIDC): no npm token is stored. On
+# npmjs.com, the package's trusted publisher is this repository and this
+# workflow file. The package publishes with provenance, which ties it to the
+# commit it was built from.
+#
+# Before the first release: remove "private": true from package.json, and set
+# the version in package.json to the version of the tag.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: The tag names the version of package.json
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          test "v${version}" = "${GITHUB_REF_NAME}" || { echo "The tag ${GITHUB_REF_NAME} is not v${version}."; exit 1; }
+      - run: npm ci
+      - run: npm test
+        env:
+          RLX_DENY_HASHES: ${{ secrets.RLX_DENY_HASHES }}
+      - run: npm publish --provenance --access public
