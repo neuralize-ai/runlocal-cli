@@ -6,8 +6,7 @@ name: Release
 # workflow file. The package publishes with provenance, which ties it to the
 # commit it was built from.
 #
-# Before the first release: remove "private": true from package.json, and set
-# the version in package.json to the version of the tag.
+# Set the version in package.json to the version of the tag before tagging.
 
 on:
   push:

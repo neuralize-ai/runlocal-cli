@@ -8,7 +8,6 @@
     "url": "git+https://github.com/neuralize-ai/runlocal-cli.git"
   },
   "homepage": "https://www.runlocal.ai",
-  "private": true,
   "type": "module",
   "bin": {
     "rlx": "dist/rlx.mjs"
