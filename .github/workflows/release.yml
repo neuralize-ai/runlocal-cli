@@ -32,6 +32,8 @@ jobs:
         run: |
           version="$(node -p 'require("./package.json").version')"
           test "v${version}" = "${GITHUB_REF_NAME}" || { echo "The tag ${GITHUB_REF_NAME} is not v${version}."; exit 1; }
+      # Trusted publishing (OIDC, no token) needs npm 11.5.1 or newer; Node 22 ships npm 10.
+      - run: npm install --global npm@11
       - run: npm ci
       - run: npm test
         env:
