@@ -69,4 +69,19 @@ describe("the leak check", () => {
     const details = new Set(findings.map((f) => f.detail));
     expect([...details].sort()).toEqual([`${API_PREFIX}widgets`, "zorblax"].sort());
   });
+  it("does not count a line that a hunk header repeats as context, only the line itself", () => {
+    const root = tempDir("rlx-leaks-hunk-");
+    const git = (...args: string[]) =>
+      execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: root, stdio: "pipe" });
+    git("init", "-q");
+    const lines = (step: string) => ["plain:", ...Array.from({ length: 12 }, (_, at) => `  line${at}: ${at === 10 ? step : "x"}`)].join("\n") + "\n";
+    writeFileSync(join(root, "a.yml"), lines("one"));
+    git("add", ".");
+    git("commit", "-q", "-m", "first");
+    writeFileSync(join(root, "a.yml"), lines("two"));
+    git("commit", "-q", "-am", "second");
+    // The diff of the second commit has "@@ … @@ plain:" as its hunk header; with the word on the deny-list, only the file line counts.
+    const findings = scanHistory(root, { denyHashes: new Set([sha256("plain")]) });
+    expect(findings).toHaveLength(1);
+  });
 });

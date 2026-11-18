@@ -159,7 +159,9 @@ export function scanHistory(root, options) {
       offset = i;
       continue;
     }
-    for (const finding of scanText(lines[i], options)) {
+    // A hunk header repeats a nearby line of the file as context ("@@ -1,2 +1,3 @@ <line>"): that line is scanned where it is, not here.
+    const line = lines[i].replace(/^(@@ [^@]* @@).*$/, "$1");
+    for (const finding of scanText(line, options)) {
       findings.push({ commit: commit.slice(0, 10), ...finding, line: i - offset });
     }
   }
