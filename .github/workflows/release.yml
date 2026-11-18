@@ -1,6 +1,6 @@
 name: Release
 
-# Publishes @runlocal/cli to npm when a version tag, such as v0.3.0, is pushed.
+# Publishes @runlocal-ai/cli to npm when a version tag, such as v0.3.0, is pushed.
 # It uses npm trusted publishing (GitHub OIDC): no npm token is stored. On
 # npmjs.com, the package's trusted publisher is this repository and this
 # workflow file. The package publishes with provenance, which ties it to the

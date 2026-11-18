@@ -1,5 +1,5 @@
 {
-  "name": "@runlocal/cli",
+  "name": "@runlocal-ai/cli",
   "version": "0.3.0",
   "description": "rlx, the RunLocal command-line tool for coding agents.",
   "license": "Apache-2.0",

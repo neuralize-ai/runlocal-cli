@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Bundles rlx into one file, dist/rlx.mjs, for `npx @runlocal/cli`.
+// Bundles rlx into one file, dist/rlx.mjs, for `npx @runlocal-ai/cli`.
 import { build } from "esbuild";
 import { chmod, readFile } from "node:fs/promises";
 

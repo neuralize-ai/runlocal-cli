@@ -8,13 +8,13 @@ RunLocal, and then runs the commands that your account offers.
 `rlx` needs Node.js 22 or later.
 
 ```sh
-npx @runlocal/cli login
+npx @runlocal-ai/cli login
 ```
 
 Or install it once:
 
 ```sh
-npm install --global @runlocal/cli
+npm install --global @runlocal-ai/cli
 rlx login
 ```
 
