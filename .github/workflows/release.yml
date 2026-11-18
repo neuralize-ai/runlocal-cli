@@ -38,4 +38,4 @@ jobs:
       - run: npm test
         env:
           RLX_DENY_HASHES: ${{ secrets.RLX_DENY_HASHES }}
-      - run: npm publish --provenance --access public
+      - run: npm publish --provenance --access public --loglevel verbose
