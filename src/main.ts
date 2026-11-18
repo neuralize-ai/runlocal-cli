@@ -2,9 +2,9 @@
 import { join } from "node:path";
 import { Api } from "./api.js";
 import { findCommand, leadingWords, parseCommandArgs, parseGlobals, versionHint } from "./args.js";
-import { type SignedIn, refusedCredential, requireSignIn } from "./auth/credential.js";
+import { type SignedIn, keySource, refusedCredential, requireSignIn } from "./auth/credential.js";
 import { keyFilePath } from "./auth/keyFile.js";
-import { builtInHelp, commandHelp, generalHelp, helpJson, SIGN_IN_HINT } from "./commands/help.js";
+import { builtInHelp, commandHelp, generalHelp, helpJson, type RefusedKey, SIGN_IN_HINT } from "./commands/help.js";
 import { login } from "./commands/login.js";
 import { logout } from "./commands/logout.js";
 import type { EngineContext } from "./engine/context.js";
@@ -47,27 +47,28 @@ async function help(io: Io, out: Out, flags: GlobalFlags, words: string[]): Prom
     if (error instanceof CliError && error.exitCode !== EXIT.notSignedIn) out.debug(error.message);
   }
   let manifest: Manifest | undefined;
+  let refusedKey: RefusedKey | undefined;
   if (signed) {
     try {
       manifest = (await loadManifest(signedApi(io, out, signed), io, signed.token)).manifest;
     } catch (error) {
       if (!(error instanceof CliError) || error.status !== 401) throw error;
-      // A refusal that auth status confirms names the source of the key; the help without commands follows it.
+      // A refusal that auth status confirms names the source of the key; the help without commands says it, in place of the sign-in line.
       const refused = await refusedCredential(io, out, signed, error);
-      if (refused !== error) {
-        if (words.length) throw refused;
-        out.warn([refused.message, refused.hint].filter(Boolean).join(" "));
-      }
+      if (refused !== error && words.length) throw refused;
+      refusedKey = refused !== error
+        ? { source: signed.source, message: refused.message, hint: refused.hint }
+        : { source: signed.source, message: `The API refused ${keySource(io, signed)} when rlx read your commands: ${error.message}`, hint: "Run: rlx login" };
     }
   }
   if (words.length) {
-    if (!manifest) throw notSignedIn(`${SIGN_IN_HINT} Run: rlx login`);
+    if (!manifest) throw notSignedIn(`${refusedKey ? `${refusedKey.message} ` : ""}${SIGN_IN_HINT} Run: rlx login`);
     const found = findCommand(manifest.commands, words);
     if (!found) throw userError(`Unknown command: ${words.join(" ")}. Run: rlx help`, "UNKNOWN_COMMAND");
     out.result(flags.json ? JSON.stringify(found.command, null, 2) : commandHelp(found.command));
     return EXIT.ok;
   }
-  out.result(flags.json ? JSON.stringify(helpJson(manifest), null, 2) : generalHelp(manifest));
+  out.result(flags.json ? JSON.stringify(helpJson(manifest, refusedKey), null, 2) : generalHelp(manifest, refusedKey));
   return EXIT.ok;
 }
 

@@ -5,7 +5,7 @@ import { loadClientConfig } from "../auth/clientConfig.js";
 import { startDeviceAuthorization, waitForApproval } from "../auth/device.js";
 import { setKeyEntry } from "../auth/keyFile.js";
 import { AUTH_STATUS_PATH, Api } from "../api.js";
-import { readSettings, resolveOrigin, writeSettings } from "../origin.js";
+import { originName, readSettings, resolveOrigin, writeSettings } from "../origin.js";
 import { loadManifest, dropManifestCaches } from "../manifest/store.js";
 import { CliError, EXIT } from "../util/errors.js";
 import { registerSecret } from "../util/mask.js";
@@ -42,7 +42,7 @@ export async function login(io: Io, out: Out, flags: GlobalFlags, noKey: boolean
 
   const status = (await api.request({ method: "GET", path: AUTH_STATUS_PATH })).body as { email?: unknown } | null;
   const email = typeof status?.email === "string" ? status.email : undefined;
-  out.info(`Signed in to ${origin}${email ? ` as ${email}` : ""}.`);
+  out.info(`Signed in to ${await originName(io, origin)}${email ? ` as ${email}` : ""}.`);
 
   const settings = await readSettings(io);
   await writeSettings(io, { ...settings, origin });
@@ -112,7 +112,7 @@ async function loginWithEnvKey(
   const email = typeof status?.email === "string" ? status.email : undefined;
   const settings = await readSettings(io);
   await writeSettings(io, { ...settings, origin });
-  out.info(`Signed in with the key from ${keyEnv}, to ${origin}${email ? ` as ${email}` : ""}.`);
+  out.info(`Signed in with the key from ${keyEnv}, to ${await originName(io, origin)}${email ? ` as ${email}` : ""}.`);
   out.info(`rlx did not store the key in ${keyFile}: it works while ${keyEnv} is set. To store a key of its own, unset ${keyEnv} and run rlx login.`);
   if (flags.json) {
     out.result(JSON.stringify({ signed_in: true, origin, email: email ?? null, key_stored: false, key_source: "env" }));

@@ -33,7 +33,12 @@ If `RUNLOCAL_API_KEY` is set, `rlx login` checks that key and uses it, with
 no browser; it does not store the key. With no terminal and no key, `rlx login`
 prints the address and the code, and waits at most 10 minutes.
 
-After sign-in, run `rlx help` to see your commands.
+After sign-in, run `rlx help` to see your commands. When the API refuses
+the key, `rlx help` says which key it used (the variable or the key file)
+and how to fix it.
+
+rlx names the service for people as RunLocal (https://www.runlocal.ai), and
+sends each request to the API origin that the website names.
 
 `rlx logout` removes the stored key from this computer. It does not revoke the
 key: you can revoke it in the workspace.
@@ -45,7 +50,7 @@ key: you can revoke it in the workspace.
 | `--json` | Prints the result as JSON, for a program. |
 | `--yes`, `-y` | Answers yes to each confirmation. |
 | `--api <origin>` | Uses this API origin. |
-| `--quiet`, `-q` | Prints the result only, and errors. |
+| `--quiet`, `-q` | Prints the result only (standard output), and errors. It hides the hint and the warnings. |
 | `--debug` | Prints each request. Credentials are never printed. |
 
 `rlx --version` prints the version. It goes before any command.

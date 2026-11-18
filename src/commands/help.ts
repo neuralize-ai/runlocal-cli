@@ -3,6 +3,13 @@ import type { Arg, Command, Manifest } from "../manifest/schema.js";
 
 export const SIGN_IN_HINT = "Sign in to see your commands.";
 
+/** A key that the API refused when rlx read the commands: which key (the variable or the key file), what failed, and how to fix it. */
+export interface RefusedKey {
+  source: "env" | "file";
+  message: string;
+  hint?: string;
+}
+
 const BUILT_IN: [string, string][] = [
   ["login", "Sign in, and offer to store an API key. Options: --api <origin>, --no-key."],
   ["logout", "Remove the stored API key of the API origin."],
@@ -22,8 +29,12 @@ function columns(rows: [string, string][], indent = "  "): string {
   return rows.map(([left, right]) => `${indent}${left.padEnd(width)}  ${right}`).join("\n");
 }
 
-/** The general help. Without a manifest, it shows only the commands before the sign-in. */
-export function generalHelp(manifest: Manifest | undefined): string {
+/**
+ * The general help. Without a manifest, it shows only the commands before
+ * the sign-in, and, when the API refused the key, which key failed and how
+ * to fix it.
+ */
+export function generalHelp(manifest: Manifest | undefined, refused?: RefusedKey): string {
   const parts = [
     "rlx, the RunLocal command-line tool for coding agents.",
     "",
@@ -33,7 +44,9 @@ export function generalHelp(manifest: Manifest | undefined): string {
     columns(BUILT_IN),
     "",
   ];
-  if (!manifest) {
+  if (!manifest && refused) {
+    parts.push(refused.message, refused.hint ?? SIGN_IN_HINT, "");
+  } else if (!manifest) {
     parts.push(SIGN_IN_HINT, "");
   } else if (manifest.commands.length === 0) {
     parts.push("Your account has no other commands.", "");
@@ -130,7 +143,7 @@ export function builtInHelp(word: string): string | undefined {
 }
 
 /** The commands as JSON, for a program. */
-export function helpJson(manifest: Manifest | undefined): unknown {
+export function helpJson(manifest: Manifest | undefined, refused?: RefusedKey): unknown {
   return {
     signed_in: Boolean(manifest),
     commands: [
@@ -143,6 +156,7 @@ export function helpJson(manifest: Manifest | undefined): unknown {
         ...(c.examples ? { examples: c.examples } : {}),
       })),
     ],
-    ...(manifest ? {} : { hint: SIGN_IN_HINT }),
+    ...(manifest ? {} : { hint: refused ? [refused.message, refused.hint].filter(Boolean).join(" ") : SIGN_IN_HINT }),
+    ...(refused ? { key_refused: { source: refused.source, message: refused.message } } : {}),
   };
 }

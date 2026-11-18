@@ -5,7 +5,9 @@ import { configDir, ensureDir, readJsonFile, writeFileAtomic } from "./util/file
 import { CliError, EXIT, userError } from "./util/errors.js";
 
 /** The public website. Its discovery file names the API origin. */
-const WEBSITE = "https://www.runlocal.ai";
+export const WEBSITE = "https://www.runlocal.ai";
+/** The name of the service, for people. */
+export const SITE_NAME = "RunLocal";
 const DISCOVERY_FILE = "/.well-known/runlocal.json";
 
 function isLoopback(hostname: string): boolean {
@@ -40,6 +42,8 @@ export function isSafeForeignUrl(url: URL): boolean {
 
 interface Settings {
   origin?: string;
+  /** The API origin that the public website named, the last time rlx read its discovery file. */
+  site_origin?: string;
 }
 
 function settingsPath(io: Io): string {
@@ -55,8 +59,15 @@ export async function writeSettings(io: Io, settings: Settings): Promise<void> {
   await writeFileAtomic(settingsPath(io), `${JSON.stringify(settings, null, 2)}\n`);
 }
 
-/** Reads the API origin from the discovery file of the public website. */
+/** Reads the API origin from the discovery file of the public website, and keeps it as the origin of the website. */
 async function discoverOrigin(io: Io): Promise<string> {
+  const origin = await readDiscovery(io);
+  const settings = await readSettings(io);
+  if (settings.site_origin !== origin) await writeSettings(io, { ...settings, site_origin: origin });
+  return origin;
+}
+
+async function readDiscovery(io: Io): Promise<string> {
   let body: { discovery?: unknown };
   try {
     const response = await io.fetch(new URL(DISCOVERY_FILE, WEBSITE), {
@@ -77,6 +88,20 @@ async function discoverOrigin(io: Io): Promise<string> {
     });
   }
   return normalizeOrigin(new URL(body.discovery).origin);
+}
+
+/**
+ * How rlx names an API origin for people: the public website, such as
+ * "RunLocal (https://www.runlocal.ai)", when the website names that origin;
+ * else the origin itself. rlx still sends each request to the API origin.
+ * When rlx has not read the discovery file yet, it reads it once (not for an
+ * origin on this machine); when it cannot, it names the origin.
+ */
+export async function originName(io: Io, origin: string): Promise<string> {
+  const settings = await readSettings(io);
+  let site = settings.site_origin;
+  if (site === undefined && !isLoopback(new URL(origin).hostname)) site = await discoverOrigin(io).catch(() => undefined);
+  return site === origin ? `${SITE_NAME} (${WEBSITE})` : origin;
 }
 
 /**

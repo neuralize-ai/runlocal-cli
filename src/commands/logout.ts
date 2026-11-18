@@ -2,7 +2,7 @@
 import type { GlobalFlags, Io, Out } from "../util/io.js";
 import { loadClientConfig } from "../auth/clientConfig.js";
 import { removeKeyEntry } from "../auth/keyFile.js";
-import { readSettings, resolveOrigin, writeSettings } from "../origin.js";
+import { originName, readSettings, resolveOrigin, writeSettings } from "../origin.js";
 import { dropManifestCaches } from "../manifest/store.js";
 import { EXIT } from "../util/errors.js";
 
@@ -16,13 +16,14 @@ export async function logout(io: Io, out: Out, flags: GlobalFlags): Promise<numb
   if (settings.origin === origin) await writeSettings(io, { ...settings, origin: undefined });
 
   const place = config.workspaceUrl ? ` at ${config.workspaceUrl}` : "";
+  const name = await originName(io, origin);
   if (removed) {
     out.info(
-      `Removed the key ${removed.prefix || ""}… of ${origin} from ${config.credentials.keyFile}. ` +
+      `Removed the key ${removed.prefix || ""}… of ${name} from ${config.credentials.keyFile}. ` +
         `rlx did not revoke it: it works until it expires. You can revoke it in the workspace${place}.`,
     );
   } else {
-    out.info(`No key is stored for ${origin}.`);
+    out.info(`No key is stored for ${name}.`);
   }
   if (io.env[config.credentials.keyEnv]) {
     out.warn(`${config.credentials.keyEnv} is set, so rlx still has a key. Unset it to sign out fully.`);

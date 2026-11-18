@@ -2,7 +2,7 @@
 import type { GlobalFlags, Io, Out } from "../util/io.js";
 import { type ClientConfig, loadClientConfig } from "./clientConfig.js";
 import { type KeyEntry, getKeyEntry, keyFilePath, removeKeyEntry } from "./keyFile.js";
-import { resolveOrigin } from "../origin.js";
+import { originName, resolveOrigin } from "../origin.js";
 import { registerSecret } from "../util/mask.js";
 import { CliError, EXIT, notSignedIn } from "../util/errors.js";
 import { AUTH_STATUS_PATH, Api } from "../api.js";
@@ -37,7 +37,7 @@ export async function currentCredential(
   if (!entry) return undefined;
   const left = entry.expires_at - io.now();
   if (typeof entry.expires_at === "number" && left <= 0) {
-    out.warn(`Your stored key for ${origin} has expired. Run: rlx login`);
+    out.warn(`Your stored key for ${await originName(io, origin)} has expired. Run: rlx login`);
     return undefined;
   }
   if (typeof entry.expires_at === "number" && left < config.credentials.renewDays * DAY_MS) {
@@ -73,6 +73,11 @@ export async function refusedCredential(io: Io, out: Out, signed: SignedIn, erro
     if ((statusError as { status?: number }).status !== 401) return error;
   }
   return await keyRefused(io, signed, error);
+}
+
+/** The key that rlx used, in words: "the key from <variable>" or "the stored key in <file>". It never holds the key. */
+export function keySource(io: Io, signed: SignedIn): string {
+  return signed.source === "env" ? `the key from ${signed.config.credentials.keyEnv}` : `the stored key in ${keyFilePath(io, signed.config.credentials)}`;
 }
 
 /** The error for a key that auth status refused. A stored key is removed from the key file. */

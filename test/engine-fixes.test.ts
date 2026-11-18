@@ -264,8 +264,8 @@ describe("a refused key", () => {
   it("says it in the help too", async () => {
     const general = await rlx(["help"], { [TEST_KEY_ENV]: BAD });
     expect(general.code).toBe(0);
-    expect(general.stdout).toContain("Sign in to see your commands.");
-    expect(general.stderr).toContain(`The API refused the key from ${TEST_KEY_ENV}`);
+    // The help itself names the key, in place of the sign-in line (test/polish.test.ts).
+    expect(general.stdout).toContain(`The API refused the key from ${TEST_KEY_ENV}`);
     const one = await rlx(["help", "widgets", "list"], { [TEST_KEY_ENV]: BAD });
     expect(one.code).toBe(2);
     expect(one.stderr).toContain(`The API refused the key from ${TEST_KEY_ENV}`);
