@@ -13,7 +13,7 @@ const GLOBAL_OPTIONS: [string, string][] = [
   ["--json", "Print the result as JSON, for a program."],
   ["--yes, -y", "Answer yes to each confirmation."],
   ["--api <origin>", "Use this API origin."],
-  ["--quiet, -q", "Print the result only."],
+  ["--quiet, -q", "Print the result only, and errors."],
   ["--debug", "Print each request. Credentials are never printed."],
 ];
 
@@ -112,6 +112,8 @@ export function builtInHelp(word: string): string | undefined {
         "Signs in with a code that you approve in a browser.",
         "Then rlx offers to store an API key in the key file of your home folder.",
         "--no-key keeps the session only. --yes stores the key without a question.",
+        "When the API key variable of the origin is set, rlx checks that key instead,",
+        "and does not store it. With no terminal, rlx waits at most 10 minutes.",
       ].join("\n");
     case "logout":
       return [

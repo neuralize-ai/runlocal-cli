@@ -69,8 +69,17 @@ export class Out {
     this.io.writeError(mask(`${text}\n`));
   }
 
-  /** A warning, on standard error. --quiet does not hide it. */
+  /** A warning, on standard error. --quiet hides it, as it hides each line that is not the result. */
   warn(text: string): void {
+    if (this.flags.quiet) return;
+    this.io.writeError(mask(`${text}\n`));
+  }
+
+  /**
+   * An error, or a line that the person must see to go on (such as the
+   * address of the sign-in), on standard error. --quiet does not hide it.
+   */
+  error(text: string): void {
     this.io.writeError(mask(`${text}\n`));
   }
 

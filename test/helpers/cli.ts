@@ -19,6 +19,7 @@ export interface CliOptions {
   interactive?: boolean;
   answers?: string[];
   now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export function tempDir(prefix = "rlx-test-"): string {
@@ -38,7 +39,7 @@ export function testIo(options: CliOptions, out: { stdout: string[]; stderr: str
       out.prompts.push(question);
       return answers.shift() ?? "";
     },
-    sleep: async () => {},
+    sleep: options.sleep ?? (async () => {}),
     now: options.now ?? (() => Date.now()),
     fetch: globalThis.fetch.bind(globalThis),
   };

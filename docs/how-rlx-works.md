@@ -10,6 +10,12 @@ in order. Each step is one of a few fixed operations, such as an HTTP request,
 an upload, or reading a local file. A step reads and writes named values, and
 the output prints some of them.
 
+A command with an option named `input` of type `path` takes an input file: a
+YAML or JSON mapping of option names (in snake_case) to values. Its steps
+send the file on. rlx reads it only to fill the positionals that the command
+line leaves out, by name; the command line wins, and rlx checks the required
+arguments after that.
+
 A manifest is data, never code. rlx checks the whole manifest before it runs
 any step, and refuses one that it cannot read in full: an unknown field, an
 unknown operation, or a bad template makes the whole manifest invalid. The

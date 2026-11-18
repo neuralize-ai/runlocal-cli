@@ -11,7 +11,16 @@ export interface ParsedGlobals {
   noKey: boolean;
 }
 
-/** Takes the global flags out of argv, at any place before "--". */
+/** The hint for --version or -V after a command name, where it is not an option of rlx. */
+export function versionHint(token: string): string {
+  return token === "--version" || token === "-V" ? " rlx --version prints the version of rlx: give it first, with no command." : "";
+}
+
+/**
+ * Takes the global flags out of argv, at any place before "--". --version
+ * and -V are global only before the command name: after it, they stay in
+ * the rest, for the command to parse (or to refuse as unknown).
+ */
 export function parseGlobals(argv: string[]): ParsedGlobals {
   const flags: GlobalFlags = {
     json: false,
@@ -24,6 +33,7 @@ export function parseGlobals(argv: string[]): ParsedGlobals {
   };
   let noKey = false;
   const rest: string[] = [];
+  let afterCommand = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
     if (arg === "--") {
@@ -51,6 +61,7 @@ export function parseGlobals(argv: string[]): ParsedGlobals {
         continue;
       case "--version":
       case "-V":
+        if (afterCommand) break;
         flags.version = true;
         continue;
       case "--no-key":
@@ -68,6 +79,7 @@ export function parseGlobals(argv: string[]): ParsedGlobals {
       flags.api = arg.slice("--api=".length);
       continue;
     }
+    if (!arg.startsWith("-")) afterCommand = true;
     rest.push(arg);
   }
   return { flags, rest, noKey };
@@ -127,9 +139,15 @@ function label(arg: Arg): string {
 
 /**
  * Parses the arguments of a command, after its name. `lenient` skips the
- * check of the required arguments, for the help of a command.
+ * check of the required arguments, for the help of a command. `fill` gives
+ * values of positionals from an input file: the command line wins over it,
+ * and the check of the required arguments runs after it.
  */
-export function parseCommandArgs(command: Command, argv: string[], options: { lenient?: boolean } = {}): Record<string, unknown> {
+export function parseCommandArgs(
+  command: Command,
+  argv: string[],
+  options: { lenient?: boolean; fill?: Record<string, unknown> } = {},
+): Record<string, unknown> {
   const helpHint = `Run: rlx ${command.name.join(" ")} --help`;
   const specs = command.args ?? [];
   const positionals = specs.filter((a) => a.kind === "positional");
@@ -177,7 +195,7 @@ export function parseCommandArgs(command: Command, argv: string[], options: { le
         inline = token.length > 2 ? token.slice(2) : undefined;
         arg = byShort.get(name);
       }
-      if (!arg) throw userError(`Unknown option ${token}. ${helpHint}`);
+      if (!arg) throw userError(`Unknown option ${token}.${versionHint(token)} ${helpHint}`);
       if (arg.kind === "flag") {
         set(arg, inline === undefined ? true : coerce(arg, inline));
         continue;
@@ -199,6 +217,18 @@ export function parseCommandArgs(command: Command, argv: string[], options: { le
     }
   }
   if (options.lenient) return values;
+
+  for (const arg of positionals) {
+    const value = options.fill?.[arg.name];
+    if (values[arg.name] !== undefined || value === undefined || value === null) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    const items = Array.isArray(value) ? value : [value];
+    if ((Array.isArray(value) && !arg.repeat) || items.some((item) => !["string", "number", "boolean"].includes(typeof item))) {
+      throw userError(`The input file gives ${label(arg)} a value that is not ${arg.repeat ? "a value or a list of values" : "one value"}. ${helpHint}`);
+    }
+    const coerced = items.map((item) => coerce(arg, String(item)));
+    values[arg.name] = arg.repeat ? coerced : coerced[0];
+  }
 
   for (const arg of specs) {
     if (values[arg.name] === undefined && arg.default !== undefined) values[arg.name] = arg.default;

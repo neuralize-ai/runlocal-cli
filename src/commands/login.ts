@@ -9,6 +9,8 @@ import { readSettings, resolveOrigin, writeSettings } from "../origin.js";
 import { loadManifest, dropManifestCaches } from "../manifest/store.js";
 import { CliError, EXIT } from "../util/errors.js";
 import { registerSecret } from "../util/mask.js";
+import { keyRefused } from "../auth/credential.js";
+import type { ClientConfig } from "../auth/clientConfig.js";
 
 function date(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
@@ -19,17 +21,23 @@ export async function login(io: Io, out: Out, flags: GlobalFlags, noKey: boolean
   const debug = (line: string): void => out.debug(line);
   const origin = await resolveOrigin(io, flags.api);
   const config = await loadClientConfig(io, origin, { refresh: true, debug });
+  const fromEnv = io.env[config.credentials.keyEnv]?.trim();
+  if (fromEnv) return await loginWithEnvKey(io, out, flags, origin, config, fromEnv);
 
   const device = await startDeviceAuthorization(io, config, debug);
-  out.warn(
+  const wait = approvalWait(io, device.expiresIn);
+  out.error(
     [
       "To sign in, open this address in a browser:",
       `  ${device.verificationUriComplete ?? device.verificationUri}`,
       `and check that it shows this code: ${device.userCode}`,
-      "Waiting for you to approve the sign-in...",
+      `Waiting for you to approve the sign-in (at most ${minutes(wait)})...`,
     ].join("\n"),
   );
-  const session = await waitForApproval(io, config, device, debug);
+  const session = await waitForApproval(io, config, device, debug, {
+    maxSeconds: wait,
+    timeoutHint: io.interactive ? undefined : `With no terminal, set ${config.credentials.keyEnv} to an API key in place of rlx login.`,
+  });
   const api = new Api(io, out, origin, () => session.token());
 
   const status = (await api.request({ method: "GET", path: AUTH_STATUS_PATH })).body as { email?: unknown } | null;
@@ -63,6 +71,52 @@ export async function login(io: Io, out: Out, flags: GlobalFlags, noKey: boolean
     );
   }
   if (flags.json) out.result(JSON.stringify({ signed_in: true, origin, email: email ?? null, key_stored: stored }));
+  return EXIT.ok;
+}
+
+/** The most seconds that login waits for the approval: the life of the code, and at most 10 minutes with no terminal. */
+const MAX_WAIT_SECONDS = 30 * 60;
+const MAX_WAIT_SECONDS_NO_TTY = 10 * 60;
+
+function approvalWait(io: Io, expiresIn: number): number {
+  return Math.max(1, Math.min(expiresIn, io.interactive ? MAX_WAIT_SECONDS : MAX_WAIT_SECONDS_NO_TTY));
+}
+
+function minutes(seconds: number): string {
+  const n = Math.max(1, Math.round(seconds / 60));
+  return `${n} minute${n === 1 ? "" : "s"}`;
+}
+
+/**
+ * Login when the key variable is set: rlx checks the key with auth status,
+ * and does not store it, as logout does not remove it.
+ */
+async function loginWithEnvKey(
+  io: Io,
+  out: Out,
+  flags: GlobalFlags,
+  origin: string,
+  config: ClientConfig,
+  key: string,
+): Promise<number> {
+  registerSecret(key);
+  const { keyEnv, keyFile } = config.credentials;
+  const api = new Api(io, out, origin, async () => key);
+  let status: { email?: unknown } | null;
+  try {
+    status = (await api.request({ method: "GET", path: AUTH_STATUS_PATH })).body as { email?: unknown } | null;
+  } catch (error) {
+    if (error instanceof CliError && error.status === 401) throw await keyRefused(io, { origin, config, token: key, source: "env" }, error);
+    throw error;
+  }
+  const email = typeof status?.email === "string" ? status.email : undefined;
+  const settings = await readSettings(io);
+  await writeSettings(io, { ...settings, origin });
+  out.info(`Signed in with the key from ${keyEnv}, to ${origin}${email ? ` as ${email}` : ""}.`);
+  out.info(`rlx did not store the key in ${keyFile}: it works while ${keyEnv} is set. To store a key of its own, unset ${keyEnv} and run rlx login.`);
+  if (flags.json) {
+    out.result(JSON.stringify({ signed_in: true, origin, email: email ?? null, key_stored: false, key_source: "env" }));
+  }
   return EXIT.ok;
 }
 

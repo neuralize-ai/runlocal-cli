@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parseClientConfig } from "../src/auth/clientConfig.js";
 import { Session } from "../src/auth/device.js";
 import { KEY, runCli, storeKey, tempDir, testIo } from "./helpers/cli.js";
-import { clientConfigBody, type MockServer, startMock } from "./helpers/mock.js";
+import { clientConfigBody, type MockServer, startMock, TEST_KEY_ENV } from "./helpers/mock.js";
 
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/manifest.json", import.meta.url), "utf8"));
 
@@ -184,6 +184,71 @@ describe("rlx login", () => {
     const run = await rlx(["login"]);
     expect(run.code).toBe(1);
     expect(run.stderr).toContain("Error AUTH.NOT_INVITED: Ask for access.");
+  });
+});
+
+describe("rlx login with the key variable set", () => {
+  const ENV_KEY = `tok_${"5c4d".repeat(16)}`;
+  const withKey = (argv: string[], key = ENV_KEY) => runCli(["--api", mock.origin, ...argv], { home, env: { [TEST_KEY_ENV]: key } });
+
+  beforeEach(() => {
+    serveSignIn();
+    mock.on("GET", "/api/v1/auth/status", (req) =>
+      req.headers.authorization === `Bearer ${ENV_KEY}`
+        ? { body: { authenticated: true, credential_type: "api_key", email: null } }
+        : { status: 401, body: { error: { code: "AUTH.REQUIRED", message: "Use a valid key." } } },
+    );
+  });
+
+  it("checks the key with auth status, and neither starts the device flow nor stores the key", async () => {
+    const run = await withKey(["login"]);
+    expect(run.code).toBe(0);
+    expect(run.stderr).toContain(`Signed in with the key from ${TEST_KEY_ENV}`);
+    expect(run.stderr).toContain(`did not store the key in ~/.rlx-test/keys.json`);
+    expect(run.stderr).not.toContain(ENV_KEY);
+    expect(mock.count("POST", "/oauth/device")).toBe(0);
+    expect(mock.count("POST", "/v1/keys")).toBe(0);
+    expect(mock.count("GET", "/api/v1/auth/status")).toBe(1);
+    expect(existsSync(join(home, ".rlx-test", "keys.json"))).toBe(false);
+  });
+
+  it("does not store the key with --yes either, and says so in JSON", async () => {
+    const run = await withKey(["login", "--yes", "--json"]);
+    expect(run.code).toBe(0);
+    expect(JSON.parse(run.stdout)).toEqual({ signed_in: true, origin: mock.origin, email: null, key_stored: false, key_source: "env" });
+    expect(existsSync(join(home, ".rlx-test", "keys.json"))).toBe(false);
+  });
+
+  it("says that the key from the variable is invalid or revoked, without the key", async () => {
+    const bad = `tok_${"7a6b".repeat(16)}`;
+    const run = await withKey(["login"], bad);
+    expect(run.code).toBe(2);
+    expect(run.stderr).toContain(`The API refused the key from ${TEST_KEY_ENV}: it is invalid or revoked.`);
+    expect(run.stderr).not.toContain(bad);
+    expect(mock.count("POST", "/oauth/device")).toBe(0);
+  });
+});
+
+describe("rlx login with no terminal", () => {
+  it("prints the address and the code, and stops waiting with a clear message", async () => {
+    serveSignIn({ tokenErrors: Array(10_000).fill("authorization_pending") });
+    mock.on("POST", "/oauth/device", () => ({
+      body: { device_code: DEVICE_CODE, user_code: USER_CODE, verification_uri: "https://sign-in.example/device", expires_in: 86_400, interval: 5 },
+    }));
+    let clock = Date.now();
+    const run = await runCli(["--api", mock.origin, "login", "--quiet"], {
+      home,
+      interactive: false,
+      now: () => clock,
+      sleep: async (ms) => void (clock += ms),
+    });
+    expect(run.code).toBe(1);
+    expect(run.stderr).toContain("https://sign-in.example/device");
+    expect(run.stderr).toContain(USER_CODE);
+    expect(run.stderr).toContain("at most 10 minutes");
+    expect(run.stderr).toContain("Error SIGN_IN.TIMEOUT: No one approved the sign-in within 10 minutes");
+    expect(run.stderr).toContain(`set ${TEST_KEY_ENV} to an API key`);
+    expect(tokenCalls).toBeLessThanOrEqual(120);
   });
 });
 

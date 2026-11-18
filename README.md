@@ -29,6 +29,10 @@ the code, and approve the sign-in. Then `rlx` offers to store an API key in a
 file in your home folder, so that it works next time. `rlx login --no-key`
 keeps the session only.
 
+If `RUNLOCAL_API_KEY` is set, `rlx login` checks that key and uses it, with
+no browser; it does not store the key. With no terminal and no key, `rlx login`
+prints the address and the code, and waits at most 10 minutes.
+
 After sign-in, run `rlx help` to see your commands.
 
 `rlx logout` removes the stored key from this computer. It does not revoke the
@@ -41,8 +45,10 @@ key: you can revoke it in the workspace.
 | `--json` | Prints the result as JSON, for a program. |
 | `--yes`, `-y` | Answers yes to each confirmation. |
 | `--api <origin>` | Uses this API origin. |
-| `--quiet`, `-q` | Prints the result only. |
+| `--quiet`, `-q` | Prints the result only, and errors. |
 | `--debug` | Prints each request. Credentials are never printed. |
+
+`rlx --version` prints the version. It goes before any command.
 
 Exit codes: 0 success, 1 user error, 2 not signed in, 3 server error,
 4 cancelled.

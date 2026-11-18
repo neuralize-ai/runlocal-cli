@@ -17,7 +17,7 @@ import { downloadTarget, safeRelativePath } from "../src/engine/download.js";
 import { runStep } from "../src/engine/run.js";
 import { configDir } from "../src/util/files.js";
 import { Out } from "../src/util/io.js";
-import { registerSecret } from "../src/util/mask.js";
+import { clearSecrets, mask, MASK, registerSecret } from "../src/util/mask.js";
 import { tempDir, testIo } from "./helpers/cli.js";
 import {
   checkTemplate,
@@ -603,6 +603,79 @@ describe("fuzz: the manifest validator", () => {
         if (!(after instanceof CliError)) {
           throw new Error(`Accepted the field ${field} at ${place.join(".") || "the top"}`);
         }
+      }),
+    );
+  });
+});
+
+describe("fuzz: masking", () => {
+  const alnum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const chars = (alphabet: string, min: number, max: number) =>
+    fc.string({ unit: fc.constantFrom(...alphabet), minLength: min, maxLength: max });
+  /** A JSON string value: no quote, backslash, or control character. */
+  const value = fc.string({ minLength: 1, maxLength: 60 }).filter((text) => !/["\\\u0000-\u001f]/.test(text));
+  const strongName = fc.constantFrom("password", "client_secret", "api_key", "apiKey", "authorization", "private_key", "access_token", "refresh_token", "device_code", "x-api-key");
+  const describing = fc.constantFrom("type", "kind", "prefix", "hint", "name", "url", "env", "count");
+  const plain = fc.oneof(
+    fc.constantFrom("api_key", "session", "bearer", "basic", "oauth", "RUNLOCAL_API_KEY", "user", "service"),
+    fc.stringMatching(/^[a-z][a-z_]{0,15}$/),
+    fc.nat({ max: 1_000_000 }).map(String),
+  );
+
+  it("never throws, is stable on its own output, and never lets a held secret through", () => {
+    fc.assert(
+      fc.property(fc.string({ maxLength: 200 }), chars(alnum, 8, 30), (text, secret) => {
+        clearSecrets();
+        registerSecret(secret);
+        const once = mask(`${text} ${secret} ${text}`);
+        expect(once).not.toContain(secret);
+        expect(mask(once)).toBe(once);
+        clearSecrets();
+      }),
+    );
+  });
+
+  it("masks any value of a field whose name is clearly a secret", () => {
+    fc.assert(
+      fc.property(strongName, value, (name, secret) => {
+        expect(mask(`{"${name}": "${secret}"}`)).toBe(`{"${name}": "${MASK}"}`);
+      }),
+    );
+  });
+
+  it("leaves a plain value of a field that describes a credential", () => {
+    fc.assert(
+      fc.property(fc.constantFrom("credential", "token", "key", "secret", "password", "api_key"), describing, plain, (word, last, text) => {
+        const json = `{"${word}_${last}":"${text}"}`;
+        expect(mask(json)).toBe(json);
+        expect(mask(`${word}_${last}=${text}`)).toBe(`${word}_${last}=${text}`);
+      }),
+    );
+  });
+
+  it("leaves a plain word in a field of a weaker name, and masks a value with digits in it", () => {
+    fc.assert(
+      fc.property(fc.constantFrom("token", "key", "credential", "auth"), plain, chars(alnum, 4, 30), (name, word, body) => {
+        expect(mask(`{"${name}":"${word}"}`)).toBe(`{"${name}":"${word}"}`);
+        const keyish = `${body}4821`;
+        expect(mask(`{"${name}":"${keyish}"}`)).toBe(`{"${name}":"${MASK}"}`);
+      }),
+    );
+  });
+
+  it("keeps the visible start of a prefixed key, and masks the rest", () => {
+    fc.assert(
+      fc.property(fc.stringMatching(/^[a-z]{2,8}$/), chars(alnum, 40, 80), (prefix, body) => {
+        const out = mask(`key ${prefix}_${body} end`);
+        expect(out).toBe(`key ${prefix}_${body.slice(0, 8)}… end`);
+      }),
+    );
+  });
+
+  it("leaves hex digests and UUIDs with no name", () => {
+    fc.assert(
+      fc.property(chars("0123456789abcdef", 64, 64), fc.uuid(), (hex, uuid) => {
+        expect(mask(`sha256:${hex} ${uuid}`)).toBe(`sha256:${hex} ${uuid}`);
       }),
     );
   });

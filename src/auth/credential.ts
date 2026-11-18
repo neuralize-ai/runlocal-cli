@@ -4,7 +4,7 @@ import { type ClientConfig, loadClientConfig } from "./clientConfig.js";
 import { type KeyEntry, getKeyEntry, keyFilePath, removeKeyEntry } from "./keyFile.js";
 import { resolveOrigin } from "../origin.js";
 import { registerSecret } from "../util/mask.js";
-import { notSignedIn } from "../util/errors.js";
+import { CliError, EXIT, notSignedIn } from "../util/errors.js";
 import { AUTH_STATUS_PATH, Api } from "../api.js";
 import { dropManifestCaches } from "../manifest/store.js";
 
@@ -57,21 +57,40 @@ export async function requireSignIn(io: Io, out: Out, flags: GlobalFlags): Promi
 }
 
 /**
- * Called when the API refused the credential. A stored key that auth status
- * also refuses is expired or revoked: rlx removes its entry.
+ * Called when the API refused the credential with 401. When auth status
+ * refuses it too, the key is invalid or revoked: the error then says which
+ * key rlx used (the environment variable or the key file) and how to fix it,
+ * and a stored key is removed from the key file. When auth status accepts
+ * the key, the refusal was of that one request, and the error stays as it is.
+ * The error never holds the key.
  */
-export async function forgetRefusedKey(io: Io, out: Out, signed: SignedIn): Promise<void> {
-  if (signed.source !== "file") return;
+export async function refusedCredential(io: Io, out: Out, signed: SignedIn, error: CliError): Promise<CliError> {
   const api = new Api(io, out, signed.origin, async () => signed.token);
   try {
     await api.request({ method: "GET", path: AUTH_STATUS_PATH });
-    return;
-  } catch (error) {
-    if ((error as { status?: number }).status !== 401) return;
+    return error;
+  } catch (statusError) {
+    if ((statusError as { status?: number }).status !== 401) return error;
   }
+  return await keyRefused(io, signed, error);
+}
+
+/** The error for a key that auth status refused. A stored key is removed from the key file. */
+export async function keyRefused(io: Io, signed: SignedIn, error?: CliError): Promise<CliError> {
+  const { keyEnv } = signed.config.credentials;
+  const place = signed.config.workspaceUrl ? ` in the workspace at ${signed.config.workspaceUrl}` : " in the workspace";
+  const options = { exitCode: EXIT.notSignedIn, code: error?.code ?? "AUTH.REQUIRED", status: 401, callId: error?.callId };
+  if (signed.source === "env") {
+    return new CliError(`The API refused the key from ${keyEnv}: it is invalid or revoked.`, {
+      ...options,
+      hint: `Set ${keyEnv} to a valid API key (you can create one${place}), or unset it and run: rlx login`,
+    });
+  }
+  const file = keyFilePath(io, signed.config.credentials);
   await removeKeyEntry(io, signed.config.credentials, signed.origin);
   await dropManifestCaches(io, signed.origin);
-  out.warn(
-    `The API refused the stored key (expired or revoked), so rlx removed it from ${keyFilePath(io, signed.config.credentials)}.`,
-  );
+  return new CliError(`The API refused the stored key in ${file}: it is invalid or revoked, so rlx removed it.`, {
+    ...options,
+    hint: "Run: rlx login",
+  });
 }

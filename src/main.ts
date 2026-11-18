@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 import { join } from "node:path";
 import { Api } from "./api.js";
-import { findCommand, leadingWords, parseCommandArgs, parseGlobals } from "./args.js";
-import { type SignedIn, forgetRefusedKey, requireSignIn } from "./auth/credential.js";
+import { findCommand, leadingWords, parseCommandArgs, parseGlobals, versionHint } from "./args.js";
+import { type SignedIn, refusedCredential, requireSignIn } from "./auth/credential.js";
 import { keyFilePath } from "./auth/keyFile.js";
 import { builtInHelp, commandHelp, generalHelp, helpJson, SIGN_IN_HINT } from "./commands/help.js";
 import { login } from "./commands/login.js";
@@ -10,6 +10,7 @@ import { logout } from "./commands/logout.js";
 import type { EngineContext } from "./engine/context.js";
 import { renderHint, renderOutput } from "./engine/output.js";
 import { runCommand } from "./engine/run.js";
+import { positionalsFromInput } from "./engine/input.js";
 import { localFile } from "./engine/context.js";
 import { writeFileAtomic } from "./util/files.js";
 import type { Command, Manifest, Output } from "./manifest/schema.js";
@@ -50,10 +51,12 @@ async function help(io: Io, out: Out, flags: GlobalFlags, words: string[]): Prom
     try {
       manifest = (await loadManifest(signedApi(io, out, signed), io, signed.token)).manifest;
     } catch (error) {
-      if (error instanceof CliError && error.status === 401) {
-        await forgetRefusedKey(io, out, signed);
-      } else {
-        throw error;
+      if (!(error instanceof CliError) || error.status !== 401) throw error;
+      // A refusal that auth status confirms names the source of the key; the help without commands follows it.
+      const refused = await refusedCredential(io, out, signed, error);
+      if (refused !== error) {
+        if (words.length) throw refused;
+        out.warn([refused.message, refused.hint].filter(Boolean).join(" "));
       }
     }
   }
@@ -96,12 +99,14 @@ async function runManifestCommand(io: Io, out: Out, flags: GlobalFlags, rest: st
       protectedPaths: [configDir(io), join(keyFilePath(io, signed.config.credentials), "..")],
     };
     if (flags.help) return await commandHelpWithExplain(ctx, found.command, rest.slice(found.used));
-    const args = parseCommandArgs(found.command, rest.slice(found.used));
+    const argv = rest.slice(found.used);
+    const fill = await positionalsFromInput(ctx, found.command, parseCommandArgs(found.command, argv, { lenient: true }));
+    const args = parseCommandArgs(found.command, argv, { fill });
     const data = await runCommand(ctx, found.command, args);
     await printOutput(ctx, found.command.output, data, args);
     return EXIT.ok;
   } catch (error) {
-    if (error instanceof CliError && error.status === 401) await forgetRefusedKey(io, out, signed);
+    if (error instanceof CliError && error.status === 401) throw await refusedCredential(io, out, signed, error);
     throw error;
   }
 }
@@ -155,9 +160,9 @@ function report(out: Out, flags: GlobalFlags, error: unknown): number {
       },
     }));
   } else {
-    out.warn(`Error${cli?.code ? ` ${cli.code}` : ""}: ${message}`);
-    if (cli?.callId) out.warn(`Call id: ${cli.callId}`);
-    if (cli?.hint) out.warn(cli.hint);
+    out.error(`Error${cli?.code ? ` ${cli.code}` : ""}: ${message}`);
+    if (cli?.callId) out.error(`Call id: ${cli.callId}`);
+    if (cli?.hint) out.error(cli.hint);
   }
   return exitCode;
 }
@@ -181,12 +186,14 @@ export async function main(argv: string[], io: Io = processIo()): Promise<number
       return EXIT.ok;
     }
     if (first === "login" || first === "logout") {
-      if (parsed.rest.length > 1) throw userError(`Unknown argument for ${first}: ${parsed.rest[1]}`);
+      if (parsed.rest.length > 1) throw userError(`Unknown argument for ${first}: ${parsed.rest[1]}.${versionHint(parsed.rest[1]!)}`);
       return first === "login" ? await login(io, out, flags, parsed.noKey) : await logout(io, out, flags);
     }
     if (parsed.noKey) throw userError("--no-key is an option of rlx login.");
     if (first === undefined || first === "help") {
       if (first === undefined && parsed.rest.length > 0) throw userError(`Unknown option: ${parsed.rest[0]}`);
+      const option = parsed.rest.find((arg) => arg.startsWith("-"));
+      if (option !== undefined) throw userError(`Unknown option for help: ${option}.${versionHint(option)}`);
       return await help(io, out, flags, first === "help" ? words.slice(1) : []);
     }
     return await runManifestCommand(io, out, flags, parsed.rest);

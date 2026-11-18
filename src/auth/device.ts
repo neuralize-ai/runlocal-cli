@@ -150,18 +150,30 @@ export class Session {
   }
 }
 
-/** Polls the token endpoint until the person approves, denies, or the code expires. */
+/**
+ * Polls the token endpoint until the person approves, denies, or the code
+ * expires. It never waits longer than the life of the code, nor longer than
+ * `maxSeconds`: then it stops with SIGN_IN.TIMEOUT.
+ */
 export async function waitForApproval(
   io: Io,
   config: ClientConfig,
   device: DeviceAuthorization,
   debug?: (line: string) => void,
+  options: { maxSeconds?: number; timeoutHint?: string } = {},
 ): Promise<Session> {
   let interval = device.interval;
-  const deadline = io.now() + device.expiresIn * 1000;
+  const seconds = Math.min(device.expiresIn, options.maxSeconds ?? device.expiresIn);
+  const deadline = io.now() + seconds * 1000;
   for (;;) {
+    if (io.now() + interval * 1000 > deadline) {
+      const waited = Math.max(1, Math.round(seconds / 60));
+      throw new CliError(`No one approved the sign-in within ${waited} minute${waited === 1 ? "" : "s"}, so rlx stopped waiting. Run rlx login again.`, {
+        code: "SIGN_IN.TIMEOUT",
+        hint: options.timeoutHint,
+      });
+    }
     await io.sleep(interval * 1000);
-    if (io.now() > deadline) throw new CliError("The sign-in code expired. Run rlx login again.");
     const { status, body } = await postForm(
       io,
       config.tokenEndpoint,
