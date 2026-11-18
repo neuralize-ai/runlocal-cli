@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
+          # No registry-url: it sets a placeholder NODE_AUTH_TOKEN, which npm would send in place of trusted publishing.
       - name: The tag names the version of package.json
         run: |
           version="$(node -p 'require("./package.json").version')"
