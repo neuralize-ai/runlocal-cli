@@ -1,0 +1,36 @@
+{
+  "name": "@runlocal/cli",
+  "version": "0.3.0",
+  "description": "rlx, the RunLocal command-line tool for coding agents.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "rlx": "dist/rlx.mjs"
+  },
+  "files": [
+    "dist/rlx.mjs",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "schema": "node scripts/manifest-schema.mjs",
+    "check-schema": "node scripts/manifest-schema.mjs --check",
+    "test": "npm run build && tsc --noEmit && node scripts/manifest-schema.mjs --check && vitest run && node scripts/check-leaks.mjs",
+    "check-leaks": "node scripts/check-leaks.mjs",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "ajv": "8.20.0",
+    "esbuild": "0.28.2",
+    "fast-check": "4.10.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12",
+    "yaml": "2.9.1"
+  }
+}

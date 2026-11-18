@@ -1,0 +1,2168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:runlocal:cli-manifest:1",
+  "title": "The rlx command manifest, runlocal.cli-manifest/1",
+  "description": "Generated from src/manifest/schema.ts by scripts/manifest-schema.mjs. Do not edit. The format is frozen. docs/how-rlx-works.md describes the engine.",
+  "$comment": "Rules that only the validator checks: Two commands cannot have the same name. Two arguments of a command cannot have the same name or the same short letter. A positional with repeat must be the last positional. output.save names an option of the command whose type is path. A template string has the format \"rlx-template\" of the specification of the manifest: a validator that does not know it accepts any string.",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "runlocal.cli-manifest/1"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "auth": {
+      "type": "object",
+      "properties": {
+        "api_keys": {
+          "type": "string",
+          "pattern": "^/(?!/)"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/command"
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "version",
+    "commands"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+      "not": {
+        "enum": [
+          "args"
+        ]
+      }
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^\\s*(?!(?:__proto__|prototype|constructor)(?![A-Za-z0-9_-]))[A-Za-z0-9_-]+(?:\\.(?!(?:__proto__|prototype|constructor)(?![A-Za-z0-9_-]))[A-Za-z0-9_-]+)*\\s*$"
+    },
+    "condition": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/path"
+        },
+        "in": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "additionalProperties": false
+    },
+    "request": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template",
+          "pattern": "^/(?!/)"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_1"
+          }
+        },
+        "headers": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$",
+            "not": {
+              "pattern": "^(?:[aA][uU][tT][hH][oO][rR][iI][zZ][aA][tT][iI][oO][nN]|[cC][oO][oO][kK][iI][eE]|[hH][oO][sS][tT]|[pP][rR][oO][xX][yY]-[aA][uU][tT][hH][oO][rR][iI][zZ][aA][tT][iI][oO][nN]|[cC][oO][nN][tT][eE][nN][tT]-[lL][eE][nN][gG][tT][hH])$|^(?:[pP][rR][oO][xX][yY]-|[sS][eE][cC]-)"
+            }
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "format": "rlx-template"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/value_1"
+        }
+      },
+      "required": [
+        "method",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "http": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template",
+          "pattern": "^/(?!/)"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_1"
+          }
+        },
+        "headers": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$",
+            "not": {
+              "pattern": "^(?:[aA][uU][tT][hH][oO][rR][iI][zZ][aA][tT][iI][oO][nN]|[cC][oO][oO][kK][iI][eE]|[hH][oO][sS][tT]|[pP][rR][oO][xX][yY]-[aA][uU][tT][hH][oO][rR][iI][zZ][aA][tT][iI][oO][nN]|[cC][oO][nN][tT][eE][nN][tT]-[lL][eE][nN][gG][tT][hH])$|^(?:[pP][rR][oO][xX][yY]-|[sS][eE][cC]-)"
+            }
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "format": "rlx-template"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/value_1"
+        },
+        "op": {
+          "const": "http"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "method",
+        "path",
+        "op"
+      ],
+      "additionalProperties": false
+    },
+    "upload": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "upload"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "begin": {
+          "$ref": "#/$defs/request"
+        },
+        "done": {
+          "$ref": "#/$defs/condition"
+        },
+        "single": {
+          "$ref": "#/$defs/path"
+        },
+        "parts": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+              ]
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "format": "rlx-template",
+              "pattern": "^/(?!/)"
+            },
+            "query": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/value_1"
+              }
+            },
+            "headers": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,64}$",
+                "not": {
+                  "pattern": "^(?:[aA][uU][tT][hH][oO][rR][iI][zZ][aA][tT][iI][oO][nN]|[cC][oO][oO][kK][iI][eE]|[hH][oO][sS][tT]|[pP][rR][oO][xX][yY]-[aA][uU][tT][hH][oO][rR][iI][zZ][aA][tT][iI][oO][nN]|[cC][oO][nN][tT][eE][nN][tT]-[lL][eE][nN][gG][tT][hH])$|^(?:[pP][rR][oO][xX][yY]-|[sS][eE][cC]-)"
+                }
+              },
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "format": "rlx-template"
+              }
+            },
+            "body": {
+              "$ref": "#/$defs/value_1"
+            },
+            "size": {
+              "$ref": "#/$defs/path"
+            },
+            "count": {
+              "$ref": "#/$defs/path"
+            },
+            "list": {
+              "$ref": "#/$defs/path"
+            },
+            "number": {
+              "$ref": "#/$defs/path"
+            },
+            "url": {
+              "$ref": "#/$defs/path"
+            },
+            "batch": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "method",
+            "path",
+            "size",
+            "list",
+            "number",
+            "url"
+          ],
+          "additionalProperties": false
+        },
+        "finish": {
+          "$ref": "#/$defs/request"
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "file",
+        "begin"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "single"
+          ]
+        },
+        {
+          "required": [
+            "parts"
+          ]
+        }
+      ]
+    },
+    "read": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "read"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "format": {
+          "enum": [
+            "json",
+            "yaml"
+          ]
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "file",
+        "as"
+      ],
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "state"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+        },
+        "set": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "delete": {
+          "type": "boolean"
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "key"
+      ],
+      "additionalProperties": false,
+      "not": {
+        "type": "object",
+        "required": [
+          "set",
+          "delete"
+        ],
+        "properties": {
+          "set": true,
+          "delete": {
+            "const": true
+          }
+        }
+      }
+    },
+    "confirm": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "confirm"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        }
+      },
+      "required": [
+        "op",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "poll": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "poll"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "step": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/http"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "when": false
+              }
+            }
+          ]
+        },
+        "until": {
+          "$ref": "#/$defs/condition"
+        },
+        "interval": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "step",
+        "until",
+        "max"
+      ],
+      "additionalProperties": false
+    },
+    "download": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "download"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "dir": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "size": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "digest": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "url",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "each_1": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "each"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "over": {
+          "$ref": "#/$defs/path"
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        },
+        "steps": {
+          "$ref": "#/$defs/steps_2"
+        },
+        "collect": {
+          "$ref": "#/$defs/path"
+        },
+        "into": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "over",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "collect": [
+          "into"
+        ],
+        "into": [
+          "collect"
+        ]
+      }
+    },
+    "step_1": {
+      "type": "object",
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "http",
+            "upload",
+            "read",
+            "state",
+            "confirm",
+            "each",
+            "poll",
+            "download"
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/http"
+        },
+        {
+          "$ref": "#/$defs/upload"
+        },
+        {
+          "$ref": "#/$defs/read"
+        },
+        {
+          "$ref": "#/$defs/state"
+        },
+        {
+          "$ref": "#/$defs/confirm"
+        },
+        {
+          "$ref": "#/$defs/poll"
+        },
+        {
+          "$ref": "#/$defs/download"
+        },
+        {
+          "$ref": "#/$defs/each_1"
+        }
+      ]
+    },
+    "steps_1": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step_1"
+      }
+    },
+    "each_2": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "each"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "over": {
+          "$ref": "#/$defs/path"
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        },
+        "steps": {
+          "$ref": "#/$defs/steps_3"
+        },
+        "collect": {
+          "$ref": "#/$defs/path"
+        },
+        "into": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "over",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "collect": [
+          "into"
+        ],
+        "into": [
+          "collect"
+        ]
+      }
+    },
+    "step_2": {
+      "type": "object",
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "http",
+            "upload",
+            "read",
+            "state",
+            "confirm",
+            "each",
+            "poll",
+            "download"
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/http"
+        },
+        {
+          "$ref": "#/$defs/upload"
+        },
+        {
+          "$ref": "#/$defs/read"
+        },
+        {
+          "$ref": "#/$defs/state"
+        },
+        {
+          "$ref": "#/$defs/confirm"
+        },
+        {
+          "$ref": "#/$defs/poll"
+        },
+        {
+          "$ref": "#/$defs/download"
+        },
+        {
+          "$ref": "#/$defs/each_2"
+        }
+      ]
+    },
+    "steps_2": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step_2"
+      }
+    },
+    "each_3": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "each"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "over": {
+          "$ref": "#/$defs/path"
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        },
+        "steps": {
+          "$ref": "#/$defs/steps_4"
+        },
+        "collect": {
+          "$ref": "#/$defs/path"
+        },
+        "into": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "over",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "collect": [
+          "into"
+        ],
+        "into": [
+          "collect"
+        ]
+      }
+    },
+    "step_3": {
+      "type": "object",
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "http",
+            "upload",
+            "read",
+            "state",
+            "confirm",
+            "each",
+            "poll",
+            "download"
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/http"
+        },
+        {
+          "$ref": "#/$defs/upload"
+        },
+        {
+          "$ref": "#/$defs/read"
+        },
+        {
+          "$ref": "#/$defs/state"
+        },
+        {
+          "$ref": "#/$defs/confirm"
+        },
+        {
+          "$ref": "#/$defs/poll"
+        },
+        {
+          "$ref": "#/$defs/download"
+        },
+        {
+          "$ref": "#/$defs/each_3"
+        }
+      ]
+    },
+    "steps_3": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step_3"
+      }
+    },
+    "each_4": {
+      "type": "object",
+      "properties": {
+        "op": {
+          "const": "each"
+        },
+        "when": {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        "over": {
+          "$ref": "#/$defs/path"
+        },
+        "as": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        },
+        "steps": {
+          "$ref": "#/$defs/steps_5"
+        },
+        "collect": {
+          "$ref": "#/$defs/path"
+        },
+        "into": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]{0,39}$",
+          "not": {
+            "enum": [
+              "args"
+            ]
+          }
+        }
+      },
+      "required": [
+        "op",
+        "over",
+        "steps"
+      ],
+      "additionalProperties": false,
+      "dependentRequired": {
+        "collect": [
+          "into"
+        ],
+        "into": [
+          "collect"
+        ]
+      }
+    },
+    "step_4": {
+      "type": "object",
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "http",
+            "upload",
+            "read",
+            "state",
+            "confirm",
+            "each",
+            "poll",
+            "download"
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "$ref": "#/$defs/http"
+        },
+        {
+          "$ref": "#/$defs/upload"
+        },
+        {
+          "$ref": "#/$defs/read"
+        },
+        {
+          "$ref": "#/$defs/state"
+        },
+        {
+          "$ref": "#/$defs/confirm"
+        },
+        {
+          "$ref": "#/$defs/poll"
+        },
+        {
+          "$ref": "#/$defs/download"
+        },
+        {
+          "$ref": "#/$defs/each_4"
+        }
+      ]
+    },
+    "steps_4": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step_4"
+      }
+    },
+    "steps_5": {
+      "not": {},
+      "$comment": "Steps cannot be nested more than 4 levels deep."
+    },
+    "value_1": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_2"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_2"
+          }
+        }
+      ]
+    },
+    "value_2": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_3"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_3"
+          }
+        }
+      ]
+    },
+    "value_3": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_4"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_4"
+          }
+        }
+      ]
+    },
+    "value_4": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_5"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_5"
+          }
+        }
+      ]
+    },
+    "value_5": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_6"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_6"
+          }
+        }
+      ]
+    },
+    "value_6": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_7"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_7"
+          }
+        }
+      ]
+    },
+    "value_7": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_8"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_8"
+          }
+        }
+      ]
+    },
+    "value_8": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_9"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_9"
+          }
+        }
+      ]
+    },
+    "value_9": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_10"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_10"
+          }
+        }
+      ]
+    },
+    "value_10": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_11"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_11"
+          }
+        }
+      ]
+    },
+    "value_11": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_12"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_12"
+          }
+        }
+      ]
+    },
+    "value_12": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_13"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_13"
+          }
+        }
+      ]
+    },
+    "value_13": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_14"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_14"
+          }
+        }
+      ]
+    },
+    "value_14": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_15"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_15"
+          }
+        }
+      ]
+    },
+    "value_15": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_16"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_16"
+          }
+        }
+      ]
+    },
+    "value_16": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_17"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_17"
+          }
+        }
+      ]
+    },
+    "value_17": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_18"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_18"
+          }
+        }
+      ]
+    },
+    "value_18": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_19"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_19"
+          }
+        }
+      ]
+    },
+    "value_19": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_20"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_20"
+          }
+        }
+      ]
+    },
+    "value_20": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_21"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_21"
+          }
+        }
+      ]
+    },
+    "value_21": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_22"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_22"
+          }
+        }
+      ]
+    },
+    "value_22": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_23"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_23"
+          }
+        }
+      ]
+    },
+    "value_23": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_24"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_24"
+          }
+        }
+      ]
+    },
+    "value_24": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_25"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_25"
+          }
+        }
+      ]
+    },
+    "value_25": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_26"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_26"
+          }
+        }
+      ]
+    },
+    "value_26": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_27"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_27"
+          }
+        }
+      ]
+    },
+    "value_27": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_28"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_28"
+          }
+        }
+      ]
+    },
+    "value_28": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_29"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_29"
+          }
+        }
+      ]
+    },
+    "value_29": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_30"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_30"
+          }
+        }
+      ]
+    },
+    "value_30": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_31"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_31"
+          }
+        }
+      ]
+    },
+    "value_31": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_32"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_32"
+          }
+        }
+      ]
+    },
+    "value_32": {
+      "anyOf": [
+        {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ]
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "format": "rlx-template"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_33"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/value_33"
+          }
+        }
+      ]
+    },
+    "value_33": {
+      "not": {},
+      "$comment": "A value cannot be nested more than 32 levels deep."
+    },
+    "arg": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,39}$",
+          "not": {
+            "enum": [
+              "json",
+              "yes",
+              "api",
+              "quiet",
+              "debug",
+              "help",
+              "version",
+              "no-key"
+            ]
+          }
+        },
+        "kind": {
+          "enum": [
+            "positional",
+            "option",
+            "flag"
+          ]
+        },
+        "type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "path"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "short": {
+          "type": "string",
+          "pattern": "^[a-zA-Z]$",
+          "not": {
+            "enum": [
+              "y",
+              "q",
+              "h",
+              "V"
+            ]
+          }
+        },
+        "help": {
+          "type": "string",
+          "minLength": 1
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "repeat": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "if": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "positional"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "short": false
+        }
+      }
+    },
+    "command": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "prefixItems": [
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,39}$",
+              "not": {
+                "enum": [
+                  "login",
+                  "logout",
+                  "help"
+                ]
+              }
+            }
+          ],
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,39}$"
+          }
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/arg"
+          }
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "steps": {
+          "$ref": "#/$defs/steps_1"
+        },
+        "output": {
+          "$ref": "#/$defs/output"
+        },
+        "explain": {
+          "type": "object",
+          "properties": {
+            "steps": {
+              "$ref": "#/$defs/steps_1"
+            },
+            "output": {
+              "$ref": "#/$defs/output"
+            }
+          },
+          "required": [
+            "steps",
+            "output"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "summary",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "output": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "table"
+            },
+            "from": {
+              "$ref": "#/$defs/path"
+            },
+            "columns": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "$ref": "#/$defs/path"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                ],
+                "minItems": 2,
+                "items": false
+              }
+            },
+            "empty": {
+              "type": "string",
+              "minLength": 1
+            },
+            "json": {
+              "$ref": "#/$defs/path"
+            },
+            "hint": {
+              "type": "string",
+              "minLength": 1,
+              "format": "rlx-template"
+            },
+            "save": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,39}$"
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "columns"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "json"
+            },
+            "from": {
+              "$ref": "#/$defs/path"
+            },
+            "json": {
+              "$ref": "#/$defs/path"
+            },
+            "hint": {
+              "type": "string",
+              "minLength": 1,
+              "format": "rlx-template"
+            },
+            "save": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,39}$"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "markdown"
+            },
+            "from": {
+              "$ref": "#/$defs/path"
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "format": "rlx-template"
+            },
+            "json": {
+              "$ref": "#/$defs/path"
+            },
+            "hint": {
+              "type": "string",
+              "minLength": 1,
+              "format": "rlx-template"
+            },
+            "save": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,39}$"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false,
+          "oneOf": [
+            {
+              "required": [
+                "from"
+              ]
+            },
+            {
+              "required": [
+                "text"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

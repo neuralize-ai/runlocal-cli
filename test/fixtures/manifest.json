@@ -1,0 +1,189 @@
+{
+  "schema": "runlocal.cli-manifest/1",
+  "version": "test.1",
+  "auth": { "api_keys": "/v1/keys" },
+  "commands": [
+    {
+      "name": ["widgets", "list"],
+      "summary": "List the widgets.",
+      "args": [
+        { "name": "color", "kind": "option", "type": "string", "help": "Only widgets of this color.", "choices": ["red", "blue"] },
+        { "name": "limit", "kind": "option", "type": "integer", "short": "n" }
+      ],
+      "steps": [
+        { "op": "http", "method": "GET", "path": "/v1/widgets", "query": { "color": "{{args.color}}", "limit": "{{args.limit}}" }, "as": "widgets" }
+      ],
+      "output": { "kind": "table", "from": "widgets.items", "columns": [["id", "ID"], ["name", "Name"], ["owner.name", "Owner"]], "empty": "No widgets." }
+    },
+    {
+      "name": ["widgets", "show"],
+      "summary": "Show one widget.",
+      "args": [{ "name": "id", "kind": "positional", "help": "The widget." }],
+      "steps": [{ "op": "http", "method": "GET", "path": "/v1/widgets/{{args.id}}", "as": "widget" }],
+      "output": { "kind": "json", "from": "widget" }
+    },
+    {
+      "name": ["widgets", "create"],
+      "summary": "Make a widget.",
+      "args": [
+        { "name": "name", "kind": "option", "required": true },
+        { "name": "tag", "kind": "option", "repeat": true },
+        { "name": "dry-run", "kind": "flag" }
+      ],
+      "steps": [
+        { "op": "confirm", "message": "Make the widget {{args.name}}?" },
+        {
+          "op": "http",
+          "method": "POST",
+          "path": "/v1/widgets",
+          "body": { "name": "{{args.name}}", "tags": "{{args.tag}}", "preview": "{{args.dry-run}}" },
+          "as": "made"
+        }
+      ],
+      "output": { "kind": "markdown", "text": "Made **{{made.name}}** ({{made.id}})." }
+    },
+    {
+      "name": ["widgets", "sync"],
+      "summary": "Send each widget of a local file.",
+      "args": [{ "name": "file", "kind": "option", "short": "f", "type": "path", "required": true }],
+      "steps": [
+        { "op": "read", "file": "{{args.file}}", "as": "doc" },
+        {
+          "op": "each",
+          "over": "doc.widgets",
+          "as": "w",
+          "steps": [{ "op": "http", "method": "PUT", "path": "/v1/widgets/{{w.id}}", "body": { "name": "{{w.name}}", "position": "{{index}}" }, "as": "saved" }],
+          "collect": "saved",
+          "into": "results"
+        }
+      ],
+      "output": { "kind": "table", "from": "results", "columns": [["id", "ID"], ["name", "Name"], ["position", "Position"]] }
+    },
+    {
+      "name": ["feed"],
+      "summary": "Show what changed since the last time.",
+      "steps": [
+        { "op": "state", "key": "feed-cursor", "as": "cursor" },
+        { "op": "http", "method": "GET", "path": "/v1/feed", "query": { "after": "{{cursor}}" }, "as": "feed" },
+        { "op": "state", "key": "feed-cursor", "set": "{{feed.next}}", "when": "{{feed.next}}" }
+      ],
+      "output": { "kind": "table", "from": "feed.events", "columns": [["at", "When"], ["text", "What"]], "empty": "Nothing new." }
+    },
+    {
+      "name": ["builds", "wait"],
+      "summary": "Wait for a build.",
+      "args": [{ "name": "id", "kind": "positional" }],
+      "steps": [
+        {
+          "op": "poll",
+          "step": { "op": "http", "method": "GET", "path": "/v1/builds/{{args.id}}" },
+          "until": { "field": "state", "in": ["done", "failed"] },
+          "interval": 1,
+          "max": 4,
+          "as": "build"
+        }
+      ],
+      "output": { "kind": "table", "from": "build", "columns": [["id", "ID"], ["state", "State"]] }
+    },
+    {
+      "name": ["gadgets", "upload"],
+      "summary": "Upload a file of a gadget.",
+      "args": [
+        { "name": "path", "kind": "positional", "type": "path" },
+        { "name": "gadget", "kind": "option", "required": true }
+      ],
+      "steps": [
+        {
+          "op": "upload",
+          "file": "{{args.path}}",
+          "begin": { "method": "POST", "path": "/v1/gadgets/{{args.gadget}}/blobs", "body": { "name": "{{file.name}}", "bytes": "{{file.size}}", "sha256": "{{file.sha256}}" } },
+          "done": { "field": "state", "in": ["held"] },
+          "single": "put_url",
+          "parts": {
+            "method": "POST",
+            "path": "/v1/blobs/{{begin.blob}}/parts",
+            "body": { "numbers": "{{numbers}}" },
+            "size": "part_bytes",
+            "count": "part_count",
+            "list": "parts",
+            "number": "n",
+            "url": "put_url",
+            "batch": 2
+          },
+          "finish": { "method": "POST", "path": "/v1/blobs/{{begin.blob}}/finish", "body": { "sha256": "{{file.sha256}}", "etags": "{{etags}}" } },
+          "as": "blob"
+        }
+      ],
+      "output": { "kind": "json", "from": "blob" }
+    },
+    {
+      "name": ["notes"],
+      "summary": "Show the notes.",
+      "steps": [{ "op": "http", "method": "GET", "path": "/v1/notes", "as": "notes" }],
+      "output": { "kind": "markdown", "from": "notes.text" }
+    },
+    {
+      "name": ["gears", "show"],
+      "summary": "Show one gear as text.",
+      "group": "Gears",
+      "args": [{ "name": "id", "kind": "positional", "required": true, "help": "The gear, such as g1." }],
+      "examples": ["rlx gears show g1", "rlx gears show g1 --json"],
+      "steps": [{ "op": "http", "method": "GET", "path": "/v1/gears/{{args.id}}", "query": { "format": "text" }, "as": "gear" }],
+      "output": { "kind": "markdown", "from": "gear.text", "json": "gear", "hint": "{{gear.next_step}}" }
+    },
+    {
+      "name": ["gears", "turn"],
+      "summary": "Turn the parts of a gear.",
+      "group": "Gears",
+      "args": [
+        { "name": "id", "kind": "positional", "required": true, "help": "The gear." },
+        { "name": "part", "kind": "positional", "repeat": true, "required": false, "help": "A part of the gear." }
+      ],
+      "steps": [{ "op": "http", "method": "POST", "path": "/v1/gears/{{args.id}}/turn", "body": { "parts": "{{args.part}}" }, "as": "spun" }],
+      "output": { "kind": "markdown", "text": "Turned {{spun.count}}." }
+    },
+    {
+      "name": ["gears", "script"],
+      "summary": "Write the script of a gear.",
+      "group": "Gears",
+      "args": [
+        { "name": "id", "kind": "positional", "required": true },
+        { "name": "out", "kind": "option", "type": "path", "help": "The file to write, such as gear.sql." }
+      ],
+      "steps": [{ "op": "http", "method": "GET", "path": "/v1/gears/{{args.id}}/script", "as": "script" }],
+      "output": { "kind": "markdown", "from": "script", "save": "out" }
+    },
+    {
+      "name": ["gears", "fetch"],
+      "summary": "Download the files of a gear.",
+      "group": "Gears",
+      "args": [
+        { "name": "id", "kind": "positional", "required": true },
+        { "name": "out", "kind": "option", "type": "path", "help": "The folder." }
+      ],
+      "steps": [
+        { "op": "http", "method": "GET", "path": "/v1/gears/{{args.id}}/files", "as": "files" },
+        {
+          "op": "each",
+          "over": "files.items",
+          "as": "f",
+          "steps": [{ "op": "download", "url": "{{f.url}}", "dir": "{{args.out}}", "name": "{{f.name}}", "size": "{{f.size}}", "digest": "{{f.digest}}", "as": "got" }],
+          "collect": "got",
+          "into": "got"
+        }
+      ],
+      "output": { "kind": "table", "from": "got", "columns": [["name", "File"], ["size", "Bytes"]] }
+    },
+    {
+      "name": ["call"],
+      "summary": "Call one operation by its name.",
+      "args": [{ "name": "operation", "kind": "positional", "required": true }],
+      "steps": [{ "op": "http", "method": "POST", "path": "/v1/call", "body": { "operation": "{{args.operation}}" }, "as": "answer" }],
+      "output": { "kind": "json", "from": "answer" },
+      "explain": {
+        "steps": [{ "op": "http", "method": "GET", "path": "/v1/operations/{{args.operation}}", "as": "op" }],
+        "output": { "kind": "markdown", "from": "op.text", "json": "op" }
+      }
+    }
+  ]
+}
